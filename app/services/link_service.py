@@ -40,6 +40,7 @@ def create_link(
 
 def get_original_url(db: Session, short_code: str):
     cached = redis_client.get(short_code)
+
     if cached:
         return cached
 
@@ -111,7 +112,11 @@ def get_stats(db: Session, short_code: str, user_id: int | None = None):
     return db.scalar(q)
 
 
-def search_by_original(db: Session, fragment: str, user_id: int | None = None):
+def search_by_original(
+    db: Session,
+    fragment: str,
+    user_id: int | None = None,
+):
     if len(fragment) < 4:
         return []
 

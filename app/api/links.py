@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.auth.service import get_current_user_optional
 from app.database import get_db
 from app.schemas.link import LinkCreate, LinkUpdate
 from app.services.link_service import (
@@ -19,8 +20,18 @@ redirect_router = APIRouter()
 
 
 @links_router.post("/shorten")
-def shorten(data: LinkCreate, db: Session = Depends(get_db)):
-    link = create_link(db, data.original_url, data.custom_alias, data.expires_at, user_id=None)
+def shorten(
+    data: LinkCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    link = create_link(
+        db,
+        data.original_url,
+        data.custom_alias,
+        data.expires_at,
+        user_id=current_user.id if current_user else None,
+    )
     return {"short_code": link.short_code}
 
 
@@ -31,15 +42,30 @@ def cleanup(days: int = 30, db: Session = Depends(get_db)):
 
 
 @links_router.get("/search")
-def search(fragment: str, db: Session = Depends(get_db)):
-    links = search_by_original(db, fragment)
-
+def search(
+    fragment: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    links = search_by_original(
+        db,
+        fragment,
+        user_id=current_user.id if current_user else None,
+    )
     return [{"short_code": link.short_code, "original_url": link.original_url} for link in links]
 
 
 @links_router.get("/{short_code}/stats")
-def stats(short_code: str, db: Session = Depends(get_db)):
-    link = get_stats(db, short_code)
+def stats(
+    short_code: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    link = get_stats(
+        db,
+        short_code,
+        user_id=current_user.id if current_user else None,
+    )
 
     if not link:
         raise HTTPException(status_code=404)
@@ -53,8 +79,18 @@ def stats(short_code: str, db: Session = Depends(get_db)):
 
 
 @links_router.put("/{short_code}")
-def update(short_code: str, data: LinkUpdate, db: Session = Depends(get_db)):
-    link = update_link(db, short_code, data.original_url)
+def update(
+    short_code: str,
+    data: LinkUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    link = update_link(
+        db,
+        short_code,
+        data.original_url,
+        user_id=current_user.id if current_user else None,
+    )
 
     if not link:
         raise HTTPException(status_code=404)
@@ -63,8 +99,16 @@ def update(short_code: str, data: LinkUpdate, db: Session = Depends(get_db)):
 
 
 @links_router.delete("/{short_code}")
-def delete(short_code: str, db: Session = Depends(get_db)):
-    ok = delete_link(db, short_code)
+def delete(
+    short_code: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    ok = delete_link(
+        db,
+        short_code,
+        user_id=current_user.id if current_user else None,
+    )
 
     if not ok:
         raise HTTPException(status_code=404)

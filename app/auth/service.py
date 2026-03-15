@@ -1,11 +1,13 @@
 import hashlib
 import uuid
 
+from fastapi import Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
 from app.cache.redis import redis_client
+from app.database import get_db
 
 
 def hash_password(password: str) -> str:
@@ -51,3 +53,20 @@ def get_user_by_session(session_id: str):
         return None
 
     return int(user_id)
+
+
+def get_current_user_optional(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    session_id = request.cookies.get("session_id")
+
+    if not session_id:
+        return None
+
+    user_id = get_user_by_session(session_id)
+
+    if not user_id:
+        return None
+
+    return db.get(User, user_id)
