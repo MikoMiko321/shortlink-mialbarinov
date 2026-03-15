@@ -20,15 +20,13 @@ redirect_router = APIRouter()
 
 @links_router.post("/shorten")
 def shorten(data: LinkCreate, db: Session = Depends(get_db)):
-    link = create_link(db, data.original_url, data.custom_alias, data.expires_at)
-
+    link = create_link(db, data.original_url, data.custom_alias, data.expires_at, user_id=None)
     return {"short_code": link.short_code}
 
 
 @links_router.delete("/cleanup")
 def cleanup(days: int = 30, db: Session = Depends(get_db)):
     delete_unused(db, days)
-
     return {"status": "cleanup done"}
 
 

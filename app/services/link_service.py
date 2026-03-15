@@ -9,7 +9,13 @@ from app.models.link import Link
 from app.utils.shortener import generate_short_code
 
 
-def create_link(db: Session, original_url: str, custom_alias: str | None, expires_at):
+def create_link(
+    db: Session,
+    original_url: str,
+    custom_alias: str | None,
+    expires_at,
+    user_id: int | None = None,
+):
     code = custom_alias or generate_short_code()
 
     existing = db.scalar(select(Link).where(Link.short_code == code))
@@ -17,7 +23,13 @@ def create_link(db: Session, original_url: str, custom_alias: str | None, expire
     if existing:
         raise HTTPException(status_code=400, detail="alias already exists")
 
-    link = Link(original_url=original_url, short_code=code, custom_alias=custom_alias, expires_at=expires_at)
+    link = Link(
+        original_url=original_url,
+        short_code=code,
+        custom_alias=custom_alias,
+        expires_at=expires_at,
+        user_id=user_id,
+    )
 
     db.add(link)
     db.commit()
@@ -46,8 +58,13 @@ def get_original_url(db: Session, short_code: str):
     return link.original_url
 
 
-def delete_link(db: Session, short_code: str):
-    link = db.scalar(select(Link).where(Link.short_code == short_code))
+def delete_link(db: Session, short_code: str, user_id: int | None = None):
+    q = select(Link).where(Link.short_code == short_code)
+
+    if user_id is not None:
+        q = q.where(Link.user_id == user_id)
+
+    link = db.scalar(q)
 
     if not link:
         return False
@@ -60,8 +77,18 @@ def delete_link(db: Session, short_code: str):
     return True
 
 
-def update_link(db: Session, short_code: str, new_url: str):
-    link = db.scalar(select(Link).where(Link.short_code == short_code))
+def update_link(
+    db: Session,
+    short_code: str,
+    new_url: str,
+    user_id: int | None = None,
+):
+    q = select(Link).where(Link.short_code == short_code)
+
+    if user_id is not None:
+        q = q.where(Link.user_id == user_id)
+
+    link = db.scalar(q)
 
     if not link:
         return None
@@ -75,15 +102,25 @@ def update_link(db: Session, short_code: str, new_url: str):
     return link
 
 
-def get_stats(db: Session, short_code: str):
-    return db.scalar(select(Link).where(Link.short_code == short_code))
+def get_stats(db: Session, short_code: str, user_id: int | None = None):
+    q = select(Link).where(Link.short_code == short_code)
+
+    if user_id is not None:
+        q = q.where(Link.user_id == user_id)
+
+    return db.scalar(q)
 
 
-def search_by_original(db: Session, fragment: str):
+def search_by_original(db: Session, fragment: str, user_id: int | None = None):
     if len(fragment) < 4:
         return []
 
-    q = select(Link).where(Link.original_url.ilike(f"%{fragment}%")).order_by(Link.created_at.desc())
+    q = select(Link).where(Link.original_url.ilike(f"%{fragment}%"))
+
+    if user_id is not None:
+        q = q.where(Link.user_id == user_id)
+
+    q = q.order_by(Link.created_at.desc())
 
     return db.scalars(q).all()
 
