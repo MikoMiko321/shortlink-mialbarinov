@@ -13,10 +13,10 @@ from app.services.link_service import (
     update_link,
 )
 
-router = APIRouter(prefix="/links")
+router = APIRouter()
 
 
-@router.post("/shorten")
+@router.post("/links/shorten")
 def shorten(data: LinkCreate, db: Session = Depends(get_db)):
     link = create_link(db, data.original_url, data.custom_alias, data.expires_at)
     return {"short_code": link.short_code}
@@ -32,7 +32,7 @@ def redirect(short_code: str, db: Session = Depends(get_db)):
     return RedirectResponse(url)
 
 
-@router.delete("/{short_code}")
+@router.delete("/links/{short_code}")
 def delete(short_code: str, db: Session = Depends(get_db)):
     ok = delete_link(db, short_code)
 
@@ -42,7 +42,7 @@ def delete(short_code: str, db: Session = Depends(get_db)):
     return {"status": "deleted"}
 
 
-@router.put("/{short_code}")
+@router.put("/links/{short_code}")
 def update(short_code: str, data: LinkUpdate, db: Session = Depends(get_db)):
     link = update_link(db, short_code, data.original_url)
 
@@ -52,7 +52,7 @@ def update(short_code: str, data: LinkUpdate, db: Session = Depends(get_db)):
     return {"status": "updated"}
 
 
-@router.get("/{short_code}/stats")
+@router.get("/links/{short_code}/stats")
 def stats(short_code: str, db: Session = Depends(get_db)):
     link = get_stats(db, short_code)
 
@@ -67,7 +67,7 @@ def stats(short_code: str, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/search")
+@router.get("/links/search")
 def search(original_url: str, db: Session = Depends(get_db)):
     link = search_by_original(db, original_url)
 

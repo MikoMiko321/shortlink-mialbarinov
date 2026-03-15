@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<h1>Your links</h1>
+
+<h2>Create link</h2>
+
+<input id="url" placeholder="https://example.com">
+<input id="alias" placeholder="custom alias (optional)">
+<button onclick="create()">Create</button>
+
+<p id="create-result"></p>
+
+
+<h2>Search by URL</h2>
+
+<input id="search-url" placeholder="https://example.com">
+<button onclick="search()">Search</button>
+
+<p id="search-result"></p>
+
+
+<h2>Stats</h2>
+
+<input id="stats-code" placeholder="short code">
+<button onclick="stats()">Get stats</button>
+
+<pre id="stats-result"></pre>
+
+
+<h2>Update link</h2>
+
+<input id="update-code" placeholder="short code">
+<input id="update-url" placeholder="new url">
+<button onclick="update()">Update</button>
+
+
+<h2>Delete link</h2>
+
+<input id="delete-code" placeholder="short code">
+<button onclick="remove()">Delete</button>
+
+<p id="delete-result"></p>
+
+
+<script src="/static/app.js"></script>
+
+</body>
+</html>
