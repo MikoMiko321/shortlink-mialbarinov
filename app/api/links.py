@@ -7,6 +7,7 @@ from app.schemas.link import LinkCreate, LinkUpdate
 from app.services.link_service import (
     create_link,
     delete_link,
+    delete_unused,
     get_original_url,
     get_stats,
     search_by_original,
@@ -72,3 +73,10 @@ def search(fragment: str, db: Session = Depends(get_db)):
     links = search_by_original(db, fragment)
 
     return [{"short_code": link.short_code, "original_url": link.original_url} for link in links]
+
+
+@router.delete("/links/cleanup")
+def cleanup(days: int = 30, db: Session = Depends(get_db)):
+    delete_unused(db, days)
+
+    return {"status": "cleanup done"}

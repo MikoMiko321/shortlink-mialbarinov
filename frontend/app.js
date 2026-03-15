@@ -184,6 +184,27 @@ async function remove() {
 }
 
 
+async function cleanup() {
+
+    const days = document.getElementById('cleanup-days').value
+
+    if (!days) {
+        alert('enter number of days')
+        return
+    }
+
+    const r = await fetch('/links/cleanup?days=' + days, {
+        method: 'DELETE'
+    })
+
+    if (r.ok) {
+        alert('cleanup done')
+    } else {
+        alert('error')
+    }
+}
+
+
 function copyLink(link) {
     navigator.clipboard.writeText(link)
 }

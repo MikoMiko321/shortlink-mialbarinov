@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.cache.redis import redis_client
@@ -78,3 +78,12 @@ def search_by_original(db, fragment: str):
     q = select(Link).where(Link.original_url.ilike(f"%{fragment}%"))
 
     return db.scalars(q).all()
+
+
+def delete_unused(db, days: int):
+    border = datetime.now(UTC) - timedelta(days=days)
+
+    q = delete(Link).where(Link.last_accessed < border)
+
+    db.execute(q)
+    db.commit()

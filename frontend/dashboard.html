@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 <meta charset="UTF-8">
 <title>Dashboard</title>
@@ -8,12 +9,12 @@
 
 <body>
 
-<h1>Your links</h1>
+<h1>Dashboard</h1>
 
 <button onclick="logout()">Logout</button>
 
 
-<h2>Create link</h2>
+<h2>Create short link</h2>
 
 <input id="url" placeholder="https://example.com">
 <input id="alias" placeholder="custom alias (optional)">
@@ -22,20 +23,23 @@
 <div id="create-result"></div>
 
 
-<h2>Search by URL</h2>
 
-<input id="search-url" placeholder="https://example.com">
+<h2>Search links</h2>
+
+<input id="search-url" placeholder="fragment (min 4 chars)">
 <button onclick="search()">Search</button>
 
 <div id="search-result"></div>
 
 
-<h2>Stats</h2>
+
+<h2>Link statistics</h2>
 
 <input id="stats-code" placeholder="short code">
 <button onclick="stats()">Get stats</button>
 
 <pre id="stats-result"></pre>
+
 
 
 <h2>Update link</h2>
@@ -45,12 +49,21 @@
 <button onclick="update()">Update</button>
 
 
+
 <h2>Delete link</h2>
 
 <input id="delete-code" placeholder="short code">
 <button onclick="remove()">Delete</button>
 
 <p id="delete-result"></p>
+
+
+
+<h2>Delete unused links</h2>
+
+<input id="cleanup-days" placeholder="days (example: 30)">
+<button onclick="cleanup()">Cleanup</button>
+
 
 
 <script src="/static/app.js"></script>
