@@ -11,8 +11,8 @@ from app.database import Base, engine
 app = FastAPI()
 
 
-if os.getenv("LOCAL_DEV") == "1":
-    Base.metadata.create_all(bind=engine)
+# if os.getenv("LOCAL_DEV") == "1":
+Base.metadata.create_all(bind=engine)
 
 
 app.include_router(links_router)
