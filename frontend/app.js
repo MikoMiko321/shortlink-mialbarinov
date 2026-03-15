@@ -13,7 +13,8 @@ async function shorten() {
 
     const link = window.location.origin + '/' + data.short_code
 
-    document.getElementById('short-result').innerText = link
+    document.getElementById('short-result').innerHTML =
+        link + ' <button onclick="copyLink(\'' + link + '\')">copy</button>'
 }
 
 
@@ -73,7 +74,8 @@ async function create() {
 
     const link = window.location.origin + '/' + data.short_code
 
-    document.getElementById('create-result').innerText = link
+    document.getElementById('create-result').innerHTML =
+        link + ' <button onclick="copyLink(\'' + link + '\')">copy</button>'
 }
 
 
@@ -90,8 +92,10 @@ async function search() {
 
     const data = await r.json()
 
-    document.getElementById('search-result').innerText =
-        window.location.origin + '/' + data.short_code
+    const link = window.location.origin + '/' + data.short_code
+
+    document.getElementById('search-result').innerHTML =
+        link + ' <button onclick="copyLink(\'' + link + '\')">copy</button>'
 }
 
 
@@ -145,4 +149,15 @@ async function remove() {
     } else {
         document.getElementById('delete-result').innerText = 'deleted'
     }
+}
+
+
+function copyLink(link) {
+    navigator.clipboard.writeText(link)
+}
+
+
+async function logout() {
+    await fetch('/auth/logout', {method: 'POST'})
+    window.location = '/'
 }

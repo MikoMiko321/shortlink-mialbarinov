@@ -10,13 +10,16 @@
 
 <h1>Your links</h1>
 
+<button onclick="logout()">Logout</button>
+
+
 <h2>Create link</h2>
 
 <input id="url" placeholder="https://example.com">
 <input id="alias" placeholder="custom alias (optional)">
 <button onclick="create()">Create</button>
 
-<p id="create-result"></p>
+<div id="create-result"></div>
 
 
 <h2>Search by URL</h2>
@@ -24,7 +27,7 @@
 <input id="search-url" placeholder="https://example.com">
 <button onclick="search()">Search</button>
 
-<p id="search-result"></p>
+<div id="search-result"></div>
 
 
 <h2>Stats</h2>
