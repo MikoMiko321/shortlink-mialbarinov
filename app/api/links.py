@@ -25,6 +25,9 @@ def shorten(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user_optional),
 ):
+    print("COOKIE SESSION:", data)
+    print("CURRENT_USER:", current_user)
+    print("USER_ID:", current_user.id if current_user else None)
     link = create_link(
         db,
         data.original_url,
