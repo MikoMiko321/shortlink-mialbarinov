@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: shortlink-mialbarinov
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    
