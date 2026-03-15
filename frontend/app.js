@@ -31,9 +31,13 @@ async function register() {
 
     if (r.ok) {
         window.location = '/static/dashboard.html'
-    } else {
-        document.getElementById('auth-result').innerText = 'user exists'
+        return
     }
+
+    const err = await r.json()
+
+    document.getElementById('auth-result').innerText =
+        JSON.stringify(err.detail)
 }
 
 
@@ -50,9 +54,13 @@ async function login() {
 
     if (r.ok) {
         window.location = '/static/dashboard.html'
-    } else {
-        document.getElementById('auth-result').innerText = 'wrong login or password'
+        return
     }
+
+    const err = await r.json()
+
+    document.getElementById('auth-result').innerText =
+        JSON.stringify(err.detail)
 }
 
 
@@ -81,21 +89,36 @@ async function create() {
 
 async function search() {
 
-    const url = document.getElementById('search-url').value
+    const fragment = document.getElementById('search-url').value
 
-    const r = await fetch('/links/search?original_url=' + encodeURIComponent(url))
+    if (fragment.length < 4) {
+        document.getElementById('search-result').innerText =
+            'enter at least 4 characters'
+        return
+    }
 
-    if (!r.ok) {
+    const r = await fetch('/links/search?fragment=' + encodeURIComponent(fragment))
+
+    const data = await r.json()
+
+    if (!data.length) {
         document.getElementById('search-result').innerText = 'not found'
         return
     }
 
-    const data = await r.json()
+    let html = ''
 
-    const link = window.location.origin + '/' + data.short_code
+    for (const l of data) {
 
-    document.getElementById('search-result').innerHTML =
-        link + ' <button onclick="copyLink(\'' + link + '\')">copy</button>'
+        const link = window.location.origin + '/' + l.short_code
+
+        html +=
+            link +
+            ' <button onclick="copyLink(\'' + link + '\')">copy</button>' +
+            '<br>'
+    }
+
+    document.getElementById('search-result').innerHTML = html
 }
 
 

@@ -71,5 +71,10 @@ def get_stats(db: Session, short_code: str):
     return db.scalar(select(Link).where(Link.short_code == short_code))
 
 
-def search_by_original(db: Session, url: str):
-    return db.scalar(select(Link).where(Link.original_url == url))
+def search_by_original(db, fragment: str):
+    if len(fragment) < 4:
+        return []
+
+    q = select(Link).where(Link.original_url.ilike(f"%{fragment}%"))
+
+    return db.scalars(q).all()

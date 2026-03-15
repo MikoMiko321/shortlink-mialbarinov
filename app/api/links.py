@@ -68,10 +68,7 @@ def stats(short_code: str, db: Session = Depends(get_db)):
 
 
 @router.get("/links/search")
-def search(original_url: str, db: Session = Depends(get_db)):
-    link = search_by_original(db, original_url)
+def search(fragment: str, db: Session = Depends(get_db)):
+    links = search_by_original(db, fragment)
 
-    if not link:
-        raise HTTPException(404)
-
-    return {"short_code": link.short_code}
+    return [{"original_url": l.original_url, "short_code": l.short_code} for l in links]
