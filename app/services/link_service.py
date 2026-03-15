@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, select
+from fastapi import HTTPException
+from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from app.cache.redis import redis_client
@@ -12,8 +13,9 @@ def create_link(db: Session, original_url: str, custom_alias: str | None, expire
     code = custom_alias or generate_short_code()
 
     existing = db.scalar(select(Link).where(Link.short_code == code))
+
     if existing:
-        raise ValueError("alias already exists")
+        raise HTTPException(status_code=400, detail="alias already exists")
 
     link = Link(original_url=original_url, short_code=code, custom_alias=custom_alias, expires_at=expires_at)
 
@@ -30,13 +32,15 @@ def get_original_url(db: Session, short_code: str):
         return cached
 
     link = db.scalar(select(Link).where(Link.short_code == short_code))
+
     if not link:
         return None
 
     redis_client.set(short_code, link.original_url)
 
     link.clicks += 1
-    link.last_accessed = datetime.utcnow()
+    link.last_accessed = datetime.now(UTC)
+
     db.commit()
 
     return link.original_url
@@ -44,6 +48,7 @@ def get_original_url(db: Session, short_code: str):
 
 def delete_link(db: Session, short_code: str):
     link = db.scalar(select(Link).where(Link.short_code == short_code))
+
     if not link:
         return False
 
@@ -51,15 +56,18 @@ def delete_link(db: Session, short_code: str):
 
     db.delete(link)
     db.commit()
+
     return True
 
 
 def update_link(db: Session, short_code: str, new_url: str):
     link = db.scalar(select(Link).where(Link.short_code == short_code))
+
     if not link:
         return None
 
     link.original_url = new_url
+
     db.commit()
 
     redis_client.delete(short_code)
@@ -71,19 +79,19 @@ def get_stats(db: Session, short_code: str):
     return db.scalar(select(Link).where(Link.short_code == short_code))
 
 
-def search_by_original(db, fragment: str):
+def search_by_original(db: Session, fragment: str):
     if len(fragment) < 4:
         return []
 
-    q = select(Link).where(Link.original_url.ilike(f"%{fragment}%"))
+    q = select(Link).where(Link.original_url.ilike(f"%{fragment}%")).order_by(Link.created_at.desc())
 
     return db.scalars(q).all()
 
 
-def delete_unused(db, days: int):
+def delete_unused(db: Session, days: int):
     border = datetime.now(UTC) - timedelta(days=days)
 
-    q = delete(Link).where(Link.last_accessed < border)
+    q = delete(Link).where(or_(Link.last_accessed < border, Link.last_accessed.is_(None)))
 
     db.execute(q)
     db.commit()

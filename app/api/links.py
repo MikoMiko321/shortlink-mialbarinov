@@ -14,51 +14,37 @@ from app.services.link_service import (
     update_link,
 )
 
-router = APIRouter()
+links_router = APIRouter(prefix="/links")
+redirect_router = APIRouter()
 
 
-@router.post("/links/shorten")
+@links_router.post("/shorten")
 def shorten(data: LinkCreate, db: Session = Depends(get_db)):
     link = create_link(db, data.original_url, data.custom_alias, data.expires_at)
+
     return {"short_code": link.short_code}
 
 
-@router.get("/{short_code}")
-def redirect(short_code: str, db: Session = Depends(get_db)):
-    url = get_original_url(db, short_code)
+@links_router.delete("/cleanup")
+def cleanup(days: int = 30, db: Session = Depends(get_db)):
+    delete_unused(db, days)
 
-    if not url:
-        raise HTTPException(404)
-
-    return RedirectResponse(url)
+    return {"status": "cleanup done"}
 
 
-@router.delete("/links/{short_code}")
-def delete(short_code: str, db: Session = Depends(get_db)):
-    ok = delete_link(db, short_code)
+@links_router.get("/search")
+def search(fragment: str, db: Session = Depends(get_db)):
+    links = search_by_original(db, fragment)
 
-    if not ok:
-        raise HTTPException(404)
-
-    return {"status": "deleted"}
+    return [{"short_code": link.short_code, "original_url": link.original_url} for link in links]
 
 
-@router.put("/links/{short_code}")
-def update(short_code: str, data: LinkUpdate, db: Session = Depends(get_db)):
-    link = update_link(db, short_code, data.original_url)
-
-    if not link:
-        raise HTTPException(404)
-
-    return {"status": "updated"}
-
-
-@router.get("/links/{short_code}/stats")
+@links_router.get("/{short_code}/stats")
 def stats(short_code: str, db: Session = Depends(get_db)):
     link = get_stats(db, short_code)
 
     if not link:
-        raise HTTPException(404)
+        raise HTTPException(status_code=404)
 
     return {
         "original_url": link.original_url,
@@ -68,15 +54,31 @@ def stats(short_code: str, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/links/search")
-def search(fragment: str, db: Session = Depends(get_db)):
-    links = search_by_original(db, fragment)
+@links_router.put("/{short_code}")
+def update(short_code: str, data: LinkUpdate, db: Session = Depends(get_db)):
+    link = update_link(db, short_code, data.original_url)
 
-    return [{"short_code": link.short_code, "original_url": link.original_url} for link in links]
+    if not link:
+        raise HTTPException(status_code=404)
+
+    return {"status": "updated"}
 
 
-@router.delete("/links/cleanup")
-def cleanup(days: int = 30, db: Session = Depends(get_db)):
-    delete_unused(db, days)
+@links_router.delete("/{short_code}")
+def delete(short_code: str, db: Session = Depends(get_db)):
+    ok = delete_link(db, short_code)
 
-    return {"status": "cleanup done"}
+    if not ok:
+        raise HTTPException(status_code=404)
+
+    return {"status": "deleted"}
+
+
+@redirect_router.get("/{short_code}")
+def redirect(short_code: str, db: Session = Depends(get_db)):
+    url = get_original_url(db, short_code)
+
+    if not url:
+        raise HTTPException(status_code=404)
+
+    return RedirectResponse(url)

@@ -9,6 +9,11 @@ async function shorten() {
         body: JSON.stringify({original_url: url})
     })
 
+    if (!r.ok) {
+        alert('error')
+        return
+    }
+
     const data = await r.json()
 
     const link = window.location.origin + '/' + data.short_code
@@ -29,18 +34,16 @@ async function register() {
     const r = await fetch('/auth/register', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({login: login, password: password})
+        body: JSON.stringify({login, password})
     })
 
-    if (r.ok) {
-        window.location = '/static/dashboard.html'
+    if (!r.ok) {
+        const err = await r.json()
+        document.getElementById('auth-result').innerText = err.detail
         return
     }
 
-    const err = await r.json()
-
-    document.getElementById('auth-result').innerText =
-        JSON.stringify(err.detail)
+    window.location = '/static/dashboard.html'
 }
 
 
@@ -52,18 +55,16 @@ async function login() {
     const r = await fetch('/auth/login', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({login: login, password: password})
+        body: JSON.stringify({login, password})
     })
 
-    if (r.ok) {
-        window.location = '/static/dashboard.html'
+    if (!r.ok) {
+        const err = await r.json()
+        document.getElementById('auth-result').innerText = err.detail
         return
     }
 
-    const err = await r.json()
-
-    document.getElementById('auth-result').innerText =
-        JSON.stringify(err.detail)
+    window.location = '/static/dashboard.html'
 }
 
 
@@ -77,9 +78,14 @@ async function create() {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
             original_url: url,
-            custom_alias: alias ? alias : null
+            custom_alias: alias || null
         })
     })
+
+    if (!r.ok) {
+        alert('error')
+        return
+    }
 
     const data = await r.json()
 
@@ -104,6 +110,11 @@ async function search() {
     }
 
     const r = await fetch('/links/search?fragment=' + encodeURIComponent(fragment))
+
+    if (!r.ok) {
+        alert('error')
+        return
+    }
 
     const data = await r.json()
 
@@ -162,9 +173,10 @@ async function update() {
 
     if (!r.ok) {
         alert('not found')
-    } else {
-        alert('updated')
+        return
     }
+
+    alert('updated')
 }
 
 
@@ -178,9 +190,10 @@ async function remove() {
 
     if (!r.ok) {
         document.getElementById('delete-result').innerText = 'not found'
-    } else {
-        document.getElementById('delete-result').innerText = 'deleted'
+        return
     }
+
+    document.getElementById('delete-result').innerText = 'deleted'
 }
 
 
@@ -197,11 +210,12 @@ async function cleanup() {
         method: 'DELETE'
     })
 
-    if (r.ok) {
-        alert('cleanup done')
-    } else {
+    if (!r.ok) {
         alert('error')
+        return
     }
+
+    alert('cleanup done')
 }
 
 
