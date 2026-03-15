@@ -18,7 +18,7 @@ def create_link(
 ):
     code = custom_alias or generate_short_code()
 
-    existing = db.scalar(select(Link).where(Link.short_code == code))
+    existing = db.scalar(select(Link).where(Link.short_code == code, Link.user_id == user_id))
 
     if existing:
         raise HTTPException(status_code=400, detail="alias already exists")
