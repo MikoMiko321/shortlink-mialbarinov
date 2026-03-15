@@ -14,7 +14,10 @@ async function shorten() {
     const link = window.location.origin + '/' + data.short_code
 
     document.getElementById('short-result').innerHTML =
-        link + ' <button onclick="copyLink(\'' + link + '\')">copy</button>'
+        '<div>' +
+        link +
+        ' <button onclick="copyLink(\'' + link + '\')">copy</button>' +
+        '</div>'
 }
 
 
@@ -83,7 +86,10 @@ async function create() {
     const link = window.location.origin + '/' + data.short_code
 
     document.getElementById('create-result').innerHTML =
-        link + ' <button onclick="copyLink(\'' + link + '\')">copy</button>'
+        '<div>' +
+        link +
+        ' <button onclick="copyLink(\'' + link + '\')">copy</button>' +
+        '</div>'
 }
 
 
@@ -110,12 +116,15 @@ async function search() {
 
     for (const l of data) {
 
-        const link = window.location.origin + '/' + l.short_code
+        const short = window.location.origin + '/' + l.short_code
 
         html +=
-            link +
-            ' <button onclick="copyLink(\'' + link + '\')">copy</button>' +
-            '<br>'
+            '<div>' +
+            short +
+            ' <button onclick="copyLink(\'' + short + '\')">copy</button>' +
+            '<br>' +
+            '<small>' + l.original_url + '</small>' +
+            '</div><br>'
     }
 
     document.getElementById('search-result').innerHTML = html

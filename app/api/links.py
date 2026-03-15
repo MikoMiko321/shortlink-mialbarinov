@@ -71,4 +71,4 @@ def stats(short_code: str, db: Session = Depends(get_db)):
 def search(fragment: str, db: Session = Depends(get_db)):
     links = search_by_original(db, fragment)
 
-    return [{"original_url": l.original_url, "short_code": l.short_code} for l in links]
+    return [{"short_code": link.short_code, "original_url": link.original_url} for link in links]
