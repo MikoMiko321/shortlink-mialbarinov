@@ -27,7 +27,7 @@ def create_link(
         if existing:
             raise HTTPException(status_code=400, detail="alias already exists")
 
-        short_code = custom_alias
+        short_code = None
 
     else:
         while True:
@@ -105,7 +105,8 @@ def delete_link(
     if not link:
         return False
 
-    redis_client.delete(link.short_code)
+    if link.short_code:
+        redis_client.delete(link.short_code)
 
     if link.custom_alias:
         redis_client.delete(link.custom_alias)
@@ -131,7 +132,8 @@ def update_link(
 
     db.commit()
 
-    redis_client.delete(link.short_code)
+    if link.short_code:
+        redis_client.delete(link.short_code)
 
     if link.custom_alias:
         redis_client.delete(link.custom_alias)

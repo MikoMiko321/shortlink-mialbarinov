@@ -16,16 +16,14 @@ class Link(Base):
         nullable=False,
     )
 
-    short_code: Mapped[str] = mapped_column(
+    short_code: Mapped[str | None] = mapped_column(
         String,
         unique=True,
-        index=True,
-        nullable=False,
+        nullable=True,
     )
 
     custom_alias: Mapped[str | None] = mapped_column(
         String,
-        index=True,
         nullable=True,
     )
 
