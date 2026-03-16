@@ -9,10 +9,6 @@ from app.models.link import Link
 from app.utils.shortener import generate_short_code
 
 
-def _code(link: Link) -> str:
-    return link.custom_alias or link.short_code
-
-
 def create_link(
     db: Session,
     original_url: str,
@@ -31,7 +27,16 @@ def create_link(
         if existing:
             raise HTTPException(status_code=400, detail="alias already exists")
 
-    short_code = generate_short_code()
+        short_code = custom_alias
+
+    else:
+        while True:
+            short_code = generate_short_code()
+
+            exists = db.scalar(select(Link).where(Link.short_code == short_code))
+
+            if not exists:
+                break
 
     link = Link(
         original_url=original_url,
@@ -48,7 +53,11 @@ def create_link(
     return link
 
 
-def _find_link(db: Session, code: str, user_id: int | None = None):
+def _find_link(
+    db: Session,
+    code: str,
+    user_id: int | None = None,
+):
     q = select(Link).where(
         or_(
             Link.short_code == code,
@@ -62,7 +71,10 @@ def _find_link(db: Session, code: str, user_id: int | None = None):
     return db.scalar(q)
 
 
-def get_original_url(db: Session, code: str):
+def get_original_url(
+    db: Session,
+    code: str,
+):
     cached = redis_client.get(code)
 
     if cached:
@@ -83,13 +95,20 @@ def get_original_url(db: Session, code: str):
     return link.original_url
 
 
-def delete_link(db: Session, code: str, user_id: int | None = None):
+def delete_link(
+    db: Session,
+    code: str,
+    user_id: int | None = None,
+):
     link = _find_link(db, code, user_id)
 
     if not link:
         return False
 
-    redis_client.delete(code)
+    redis_client.delete(link.short_code)
+
+    if link.custom_alias:
+        redis_client.delete(link.custom_alias)
 
     db.delete(link)
     db.commit()
@@ -112,12 +131,19 @@ def update_link(
 
     db.commit()
 
-    redis_client.delete(code)
+    redis_client.delete(link.short_code)
+
+    if link.custom_alias:
+        redis_client.delete(link.custom_alias)
 
     return link
 
 
-def get_stats(db: Session, code: str, user_id: int | None = None):
+def get_stats(
+    db: Session,
+    code: str,
+    user_id: int | None = None,
+):
     return _find_link(db, code, user_id)
 
 
@@ -138,20 +164,19 @@ def search_by_original(
 
     links = db.scalars(q).all()
 
-    result = []
-
-    for link in links:
-        result.append(
-            {
-                "short_code": _code(link),
-                "original_url": link.original_url,
-            }
-        )
-
-    return result
+    return [
+        {
+            "short_code": link.custom_alias or link.short_code,
+            "original_url": link.original_url,
+        }
+        for link in links
+    ]
 
 
-def delete_unused(db: Session, days: int):
+def delete_unused(
+    db: Session,
+    days: int,
+):
     border = datetime.now(UTC) - timedelta(days=days)
 
     q = delete(Link).where(
