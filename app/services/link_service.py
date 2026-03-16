@@ -9,6 +9,10 @@ from app.models.link import Link
 from app.utils.shortener import generate_short_code
 
 
+def _code(link: Link) -> str:
+    return link.custom_alias or link.short_code
+
+
 def create_link(
     db: Session,
     original_url: str,
@@ -16,16 +20,22 @@ def create_link(
     expires_at,
     user_id: int | None = None,
 ):
-    code = custom_alias or generate_short_code()
+    if custom_alias:
+        existing = db.scalar(
+            select(Link).where(
+                Link.custom_alias == custom_alias,
+                Link.user_id == user_id,
+            )
+        )
 
-    existing = db.scalar(select(Link).where(Link.short_code == code, Link.user_id == user_id))
+        if existing:
+            raise HTTPException(status_code=400, detail="alias already exists")
 
-    if existing:
-        raise HTTPException(status_code=400, detail="alias already exists")
+    short_code = generate_short_code()
 
     link = Link(
         original_url=original_url,
-        short_code=code,
+        short_code=short_code,
         custom_alias=custom_alias,
         expires_at=expires_at,
         user_id=user_id,
@@ -38,18 +48,32 @@ def create_link(
     return link
 
 
-def get_original_url(db: Session, short_code: str):
-    cached = redis_client.get(short_code)
+def _find_link(db: Session, code: str, user_id: int | None = None):
+    q = select(Link).where(
+        or_(
+            Link.short_code == code,
+            Link.custom_alias == code,
+        )
+    )
+
+    if user_id is not None:
+        q = q.where(Link.user_id == user_id)
+
+    return db.scalar(q)
+
+
+def get_original_url(db: Session, code: str):
+    cached = redis_client.get(code)
 
     if cached:
         return cached
 
-    link = db.scalar(select(Link).where(Link.short_code == short_code))
+    link = _find_link(db, code)
 
     if not link:
         return None
 
-    redis_client.set(short_code, link.original_url)
+    redis_client.set(code, link.original_url, ex=86400)
 
     link.clicks += 1
     link.last_accessed = datetime.now(UTC)
@@ -59,18 +83,13 @@ def get_original_url(db: Session, short_code: str):
     return link.original_url
 
 
-def delete_link(db: Session, short_code: str, user_id: int | None = None):
-    q = select(Link).where(Link.short_code == short_code)
-
-    if user_id is not None:
-        q = q.where(Link.user_id == user_id)
-
-    link = db.scalar(q)
+def delete_link(db: Session, code: str, user_id: int | None = None):
+    link = _find_link(db, code, user_id)
 
     if not link:
         return False
 
-    redis_client.delete(short_code)
+    redis_client.delete(code)
 
     db.delete(link)
     db.commit()
@@ -80,16 +99,11 @@ def delete_link(db: Session, short_code: str, user_id: int | None = None):
 
 def update_link(
     db: Session,
-    short_code: str,
+    code: str,
     new_url: str,
     user_id: int | None = None,
 ):
-    q = select(Link).where(Link.short_code == short_code)
-
-    if user_id is not None:
-        q = q.where(Link.user_id == user_id)
-
-    link = db.scalar(q)
+    link = _find_link(db, code, user_id)
 
     if not link:
         return None
@@ -98,18 +112,13 @@ def update_link(
 
     db.commit()
 
-    redis_client.delete(short_code)
+    redis_client.delete(code)
 
     return link
 
 
-def get_stats(db: Session, short_code: str, user_id: int | None = None):
-    q = select(Link).where(Link.short_code == short_code)
-
-    if user_id is not None:
-        q = q.where(Link.user_id == user_id)
-
-    return db.scalar(q)
+def get_stats(db: Session, code: str, user_id: int | None = None):
+    return _find_link(db, code, user_id)
 
 
 def search_by_original(
@@ -127,13 +136,30 @@ def search_by_original(
 
     q = q.order_by(Link.created_at.desc())
 
-    return db.scalars(q).all()
+    links = db.scalars(q).all()
+
+    result = []
+
+    for link in links:
+        result.append(
+            {
+                "short_code": _code(link),
+                "original_url": link.original_url,
+            }
+        )
+
+    return result
 
 
 def delete_unused(db: Session, days: int):
     border = datetime.now(UTC) - timedelta(days=days)
 
-    q = delete(Link).where(or_(Link.last_accessed < border, Link.last_accessed.is_(None)))
+    q = delete(Link).where(
+        or_(
+            Link.last_accessed < border,
+            Link.last_accessed.is_(None),
+        )
+    )
 
     db.execute(q)
     db.commit()

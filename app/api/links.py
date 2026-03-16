@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.auth.service import get_current_user_optional
 from app.database import get_db
+from app.models.link import Link
 from app.schemas.link import LinkCreate, LinkUpdate
 from app.services.link_service import (
     create_link,
     delete_link,
     delete_unused,
-    get_original_url,
     get_stats,
     search_by_original,
     update_link,
@@ -25,9 +26,6 @@ def shorten(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user_optional),
 ):
-    print("COOKIE SESSION:", data)
-    print("CURRENT_USER:", current_user)
-    print("USER_ID:", current_user.id if current_user else None)
     link = create_link(
         db,
         data.original_url,
@@ -35,7 +33,10 @@ def shorten(
         data.expires_at,
         user_id=current_user.id if current_user else None,
     )
-    return {"short_code": link.short_code}
+
+    code = link.custom_alias or link.short_code
+
+    return {"short_code": code}
 
 
 @links_router.delete("/cleanup")
@@ -55,22 +56,40 @@ def search(
         fragment,
         user_id=current_user.id if current_user else None,
     )
-    return [{"short_code": link.short_code, "original_url": link.original_url} for link in links]
+
+    result = []
+
+    for link in links:
+        code = link.custom_alias or link.short_code
+        result.append(
+            {
+                "short_code": code,
+                "original_url": link.original_url,
+            }
+        )
+
+    return result
 
 
-@links_router.get("/{short_code}/stats")
+@links_router.get("/{code}/stats")
 def stats(
-    short_code: str,
+    code: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user_optional),
 ):
-    link = get_stats(
-        db,
-        short_code,
-        user_id=current_user.id if current_user else None,
+    link = db.scalar(
+        select(Link).where(
+            or_(
+                Link.short_code == code,
+                Link.custom_alias == code,
+            )
+        )
     )
 
     if not link:
+        raise HTTPException(status_code=404)
+
+    if current_user and link.user_id != current_user.id:
         raise HTTPException(status_code=404)
 
     return {
@@ -81,16 +100,16 @@ def stats(
     }
 
 
-@links_router.put("/{short_code}")
+@links_router.put("/{code}")
 def update(
-    short_code: str,
+    code: str,
     data: LinkUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user_optional),
 ):
     link = update_link(
         db,
-        short_code,
+        code,
         data.original_url,
         user_id=current_user.id if current_user else None,
     )
@@ -101,15 +120,15 @@ def update(
     return {"status": "updated"}
 
 
-@links_router.delete("/{short_code}")
+@links_router.delete("/{code}")
 def delete(
-    short_code: str,
+    code: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user_optional),
 ):
     ok = delete_link(
         db,
-        short_code,
+        code,
         user_id=current_user.id if current_user else None,
     )
 
@@ -119,11 +138,18 @@ def delete(
     return {"status": "deleted"}
 
 
-@redirect_router.get("/{short_code}")
-def redirect(short_code: str, db: Session = Depends(get_db)):
-    url = get_original_url(db, short_code)
+@redirect_router.get("/{code}")
+def redirect(code: str, db: Session = Depends(get_db)):
+    link = db.scalar(
+        select(Link).where(
+            or_(
+                Link.short_code == code,
+                Link.custom_alias == code,
+            )
+        )
+    )
 
-    if not url:
+    if not link:
         raise HTTPException(status_code=404)
 
-    return RedirectResponse(url)
+    return RedirectResponse(link.original_url)
