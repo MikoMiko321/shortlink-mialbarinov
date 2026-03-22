@@ -9,10 +9,9 @@
 # Нагрузочное тестирование
 
 1. Сперва поднимаем сервис: :```docker compose up```
-2. ```locust -f load/locustfile.py -H http://localhost:8000```
+2. ```locust -f load/locustfile.py -H http://localhost:8000``` можно тестировать и нагрузку на проде: ```locust -f load/locustfile.py -H https://shortlink-mialbarinov.onrender.com``` главное осторожно, чтобы не решили что это ДДОС и не словить 429
 3. http://127.0.0.1:8089/
 4. Указываем параметры и смотрим как покажет себя сервис
-
 
 # Shortlink API Service
 
