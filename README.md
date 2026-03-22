@@ -4,7 +4,14 @@
 0. не забываем запустить Докер, а также ```poetry install```
 1. ```docker compose -f docker-compose.test.yml up -d```
 2. ```pytest --cov=app --cov-report=term-missing --cov-report=html tests```
+3. после завершения тестирования ```docker compose -f docker-compose.test.yml down -v```
 
+# Нагрузочное тестирование
+
+1. Сперва поднимаем сервис: :```docker compose up```
+2. ```locust -f load/locustfile.py -H http://localhost:8000```
+3. http://127.0.0.1:8089/
+4. Указываем параметры и смотрим как покажет себя сервис
 
 
 # Shortlink API Service
