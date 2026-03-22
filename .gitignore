@@ -5,3 +5,5 @@ __pycache__/
 *.db
 .ruff_cache
 *.sqlite3
+.vscode
+.coverage
